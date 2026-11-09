@@ -5,11 +5,12 @@ window.Scene3D = (function () {
   const T = THREE;
   let renderer, scene, camera, controls, root, container;
   let pickables = [], hotspots = [], hovered = null;
-  let running = false, anim = null, viewOffsetPx = 0, dirty = true, shadowDirty = true;
+  let running = false, anim = null, viewOffsetPx = 0, dirty = true, shadowDirty = true, loadToken = 0;
   const raycaster = new T.Raycaster();
   const mouse = new T.Vector2();
   const cb = { hover: () => {}, click: () => {} };
   const OX = -12.75, OZ = -8.5; // dời tâm mặt bằng về gốc toạ độ
+  const vn = (n) => n.toFixed(1).replace('.', ',');
 
   /* ---------- Vật liệu ---------- */
   function woodTexture(base, line) {
@@ -173,17 +174,122 @@ window.Scene3D = (function () {
 
   /* ---------- Dựng căn hộ ---------- */
   const cache = {};
+  // Mỗi loại căn dựng 1 lần (Promise): GLB nếu có, lỗi/không có → mô hình dựng sẵn
   function getBuild(floor) {
+    const t = UNIT_TYPES[floor.type];
     if (!cache[floor.type]) {
-      const prev = { root, pickables, hotspots };
-      build(floor);
-      mergeStatic(root);
-      cache[floor.type] = { root, pickables, hotspots };
-      root.visible = false;
-      ({ root, pickables, hotspots } = prev);
-      shadowDirty = true;
+      cache[floor.type] = t.glb
+        ? buildGLB(t).catch((err) => { console.warn('[Lumière] Không tải được GLB, dùng mô hình dựng sẵn:', err); return buildProcedural(floor); })
+        : Promise.resolve(buildProcedural(floor));
     }
     return cache[floor.type];
+  }
+  function isolate(fn) {
+    const prev = { root, pickables, hotspots };
+    fn();
+    const b = { root, pickables, hotspots };
+    root.visible = false;
+    ({ root, pickables, hotspots } = prev);
+    shadowDirty = true;
+    return b;
+  }
+  function buildProcedural(floor) {
+    return isolate(() => { build(floor); mergeStatic(root); applyRoomConfig(UNIT_TYPES[floor.type]); });
+  }
+
+  /* ---------- Nạp file GLB ----------
+     Quy ước đặt tên trong model (Blender / 3ds Max / SketchUp):
+       room_<key>     : node sàn hoặc group của 1 phòng → tự tạo vùng hover + hotspot
+       hotspot_<key>  : (tuỳ chọn) empty đặt vị trí chấm hotspot chính xác
+     Đơn vị model: mét. Model được tự căn giữa và thu phóng cho vừa khung. */
+  let gltfLoader = null;
+  function buildGLB(t) {
+    return new Promise((resolve, reject) => {
+      if (!T.GLTFLoader) { reject(new Error('Thiếu GLTFLoader')); return; }
+      if (!gltfLoader) {
+        gltfLoader = new T.GLTFLoader();
+        if (T.DRACOLoader) { const d = new T.DRACOLoader(); d.setDecoderPath(LT.url('vendor/draco/')); gltfLoader.setDRACOLoader(d); }
+      }
+      gltfLoader.load(t.glb, (gltf) => {
+        try { resolve(isolate(() => mountGLB(gltf.scene, t))); } catch (e) { reject(e); }
+      }, undefined, reject);
+    });
+  }
+  function mountGLB(model, t) {
+    root = new T.Group(); scene.add(root);
+    pickables = []; hotspots = [];
+    model.rotation.y = T.MathUtils.degToRad(t.rotation || 0);
+    const holder = new T.Group(); holder.add(model);
+    holder.updateMatrixWorld(true);
+    const box = new T.Box3().setFromObject(holder);
+    const size = box.getSize(new T.Vector3()), center = box.getCenter(new T.Vector3());
+    // vừa khung giống mô hình dựng sẵn: rộng ≤ 26, sâu ≤ 17 đơn vị
+    const k = Math.min(26 / Math.max(size.x, 0.001), 17 / Math.max(size.z, 0.001));
+    model.position.set(-center.x, -box.min.y, -center.z);
+    holder.scale.setScalar(k);
+    root.add(holder);
+    root.updateMatrixWorld(true);
+
+    const markers = {}, rooms = [];
+    model.traverse((o) => {
+      if (o.isMesh) {
+        o.castShadow = true; o.receiveShadow = true;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach((m) => { if (m && m.map) m.map.anisotropy = 4; });
+      }
+      let m = /^hotspot[_-](.+)$/i.exec(o.name);
+      if (m) { markers[normKey(m[1])] = o.getWorldPosition(new T.Vector3()); o.visible = false; return; }
+      m = /^room[_-](.+)$/i.exec(o.name);
+      if (m) rooms.push([normKey(m[1]), o]);
+    });
+    const seen = new Set();
+    rooms.forEach(([key, o]) => {
+      if (seen.has(key)) return;
+      const b = new T.Box3().setFromObject(o); if (b.isEmpty()) return;
+      seen.add(key);
+      const sz = b.getSize(new T.Vector3()), c = b.getCenter(new T.Vector3());
+      const type = LT.guessType(key);
+      const num = (key.match(/\d+$/) || [''])[0];
+      const room = { key, type, name: (ROOM_INFO[type] || ROOM_INFO.other).label + (num && type !== 'master' ? ' ' + num : ''), view: '' };
+      addPickRaw(room, sz.x, sz.z, c.x, b.min.y + 0.04, c.z);
+      hotspots.push({
+        room,
+        pos: markers[key] || new T.Vector3(c.x, b.min.y + Math.min(1.0, sz.y * 0.6 + 0.2), c.z),
+        area: Math.round((sz.x / k) * (sz.z / k) * 10) / 10,
+        dims: vn(sz.x / k) + ' × ' + vn(sz.z / k) + ' m',
+      });
+    });
+    applyRoomConfig(t);
+  }
+  // "room_Kitchen.001" → GLTFLoader đổi thành "room_Kitchen001" → key "kitchen"
+  const normKey = (s) => s.toLowerCase().replace(/([a-z])\d{3}$/, '$1').replace(/[^a-z0-9_-]/g, '');
+
+  /* Gộp thông tin phòng admin nhập (theo key) vào hotspot đã tính từ model */
+  function applyRoomConfig(t) {
+    const cfg = (t && t.rooms) || [];
+    if (!cfg.length) { linkPicks(); return; }
+    const keyOf = (c) => normKey(String(c.key || c.name || ''));
+    cfg.forEach((c) => {
+      const key = keyOf(c); if (!key) return;
+      let h = hotspots.find((x) => x.room.key === key);
+      if (!h) { h = { room: { key, name: key, type: LT.guessType(key), view: '' }, pos: null, area: 0, dims: '—' }; hotspots.push(h); }
+      const over = {};
+      ['name', 'type', 'view', 'floor', 'features', 'imgs'].forEach((f) => {
+        const v = c[f]; if (v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && !v.length)) over[f] = v;
+      });
+      h.room = Object.assign({}, h.room, over);
+      if (+c.area) h.area = +c.area;
+      if (c.dims) h.dims = c.dims;
+    });
+    const order = cfg.map(keyOf);
+    hotspots.sort((a, b) => {
+      const ia = order.indexOf(a.room.key), ib = order.indexOf(b.room.key);
+      return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+    });
+    linkPicks();
+  }
+  function linkPicks() {
+    pickables.forEach((p) => { p.userData.hotspot = hotspots.find((x) => x.room.key === p.userData.room.key); });
   }
 
   // Gộp mọi mesh tĩnh cùng vật liệu thành 1 draw call (≈ 600 → ≈ 40 draw calls)
@@ -264,18 +370,21 @@ window.Scene3D = (function () {
   }
 
   function addPick(room, mesh) {
+    addPickRaw(room, mesh.geometry.parameters.width, mesh.geometry.parameters.depth, mesh.position.x, 0.07, mesh.position.z);
+  }
+  function addPickRaw(room, w, d, x, y, z) {
     const overlay = new T.Mesh(
-      new T.PlaneGeometry(mesh.geometry.parameters.width, mesh.geometry.parameters.depth),
+      new T.PlaneGeometry(w, d),
       new T.MeshBasicMaterial({ color: 0x7cc4ff, transparent: true, opacity: 0.22, depthWrite: false, visible: false })
     );
     overlay.rotation.x = -Math.PI / 2;
-    overlay.position.set(mesh.position.x, 0.07, mesh.position.z);
+    overlay.position.set(x, y, z);
     overlay.userData.room = room; overlay.renderOrder = 3;
     root.add(overlay); pickables.push(overlay);
   }
 
   function furnish(floor, type, lShape) {
-    const isStudy = floor.type === '2br';
+    const isStudy = type.preset === '2br';
     // --- Phòng ngủ 2
     boxXZ(0.6, 0.6, 4.9, 4.4, 0, 0.01, M.rug, null, { cast: false });
     bed(1.6, 0.35, 2.0, 2.4, 'n');
@@ -372,14 +481,13 @@ window.Scene3D = (function () {
     }
   }
 
-  const vn = (n) => n.toFixed(1).replace('.', ',');
   function computeHotspots(type, lShape) {
     const s = type.scale;
     PLAN.rooms.forEach((r) => {
       let cx = r.x + r.w / 2, cz = r.z + r.d / 2;
       let w = r.w, d = r.d, area;
       let room = Object.assign({}, r);
-      if (r.key === 'bed3' && UNIT_TYPES['2br'] === type) { room.type = 'study'; room.name = 'Phòng làm việc'; }
+      if (r.key === 'bed3' && type.preset === '2br') { room.type = 'study'; room.name = 'Phòng làm việc'; }
       if (r.key === 'terrace') {
         cx = 12; cz = 14.8;
         w = lShape ? 25.5 : 22; area = (w * 3.5 + (lShape ? 3.5 * 11.5 : 0)) * s * s;
@@ -391,11 +499,6 @@ window.Scene3D = (function () {
         dims: r.key === 'terrace' && lShape ? 'Chữ L · ' + vn(25.5 * s) + ' × ' + vn(15 * s) + ' m' : vn(w * s) + ' × ' + vn(d * s) + ' m',
         area: Math.round(area * 10) / 10,
       });
-    });
-    // gắn dữ liệu đã tính vào overlay
-    pickables.forEach((p) => {
-      const h = hotspots.find((x) => x.room.key === p.userData.room.key);
-      p.userData.hotspot = h;
     });
   }
 
@@ -498,21 +601,28 @@ window.Scene3D = (function () {
         const o = pick(e); if (o) cb.click(o.userData.hotspot);
       });
       window.addEventListener('resize', resize);
+      if (window.ResizeObserver) new ResizeObserver(resize).observe(el);
       resize();
     },
+    // Trả về Promise (GLB tải bất đồng bộ)
     load(floor) {
-      const b = getBuild(floor);
-      if (root) root.visible = false;
-      ({ root, pickables, hotspots } = b);
-      root.visible = true; shadowDirty = true; dirty = true;
-      setHover(null);
+      const token = ++loadToken;
+      return getBuild(floor).then((b) => {
+        if (token !== loadToken) return false;
+        if (root) root.visible = false;
+        ({ root, pickables, hotspots } = b);
+        root.visible = true; shadowDirty = true; dirty = true;
+        hovered = undefined; setHover(null);
+        return true;
+      });
     },
     // Dựng sẵn + biên dịch shader trước để lúc chuyển cảnh không bị khựng
     prewarm(floor) {
-      const b = getBuild(floor);
-      const was = b.root.visible; b.root.visible = true;
-      renderer.compile(scene, camera);
-      b.root.visible = was;
+      return getBuild(floor).then((b) => {
+        const was = b.root.visible; b.root.visible = true;
+        renderer.compile(scene, camera);
+        b.root.visible = was;
+      });
     },
     start() { if (!running) { running = true; resize(); loop(); } },
     stop() { running = false; },

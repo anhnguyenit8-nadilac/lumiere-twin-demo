@@ -1,2 +1,5 @@
 assets/tower.png
 .DS_Store
+dist/
+wp-plugin/lumiere-tower/public/
+wp-plugin/lumiere-tower/samples/

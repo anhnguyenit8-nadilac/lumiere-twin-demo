@@ -1,86 +1,90 @@
 /* =========================================================
-   DỮ LIỆU DỰ ÁN — chỉnh sửa tại đây
-   - Toạ độ tầng tính theo pixel của ảnh gốc assets/tower.png (1672 × 941)
-   - Mặt bằng căn hộ tính theo "ô lưới"; kích thước thật = ô × scale (m)
+   CHUẨN HOÁ DỮ LIỆU
+   Nguồn: window.LT_DATA (WordPress xuất ra) → nếu thiếu thì dùng window.LT_DEMO
+   Toạ độ tầng tính theo pixel của ảnh tòa nhà.
+   Mặt bằng mô hình dựng sẵn tính theo "ô lưới"; kích thước thật = ô × scale (m)
    ========================================================= */
-
-window.PROJECT = {
-  name: 'LUMIÈRE TWIN',
-  location: 'Thủ Thiêm · TP. Hồ Chí Minh',
-  image: { src: 'assets/tower.jpg', w: 1672, h: 941 },
-};
-
-/* ---------- Hình học tầng trên ảnh ---------- */
 (function () {
-  const BASE = 785;        // chân tầng 1 (y px)
-  const H = 28.42;         // chiều cao mỗi tầng (px)
-  const COUNT = 19;        // số tầng căn hộ
-  const L = { x1: 631, x2: 819, top: 245 };   // tháp trái
-  const C = { x1: 819, x2: 841, top: 300 };   // lõi giữa
-  const R = { x1: 841, x2: 1031, top: 277 };  // tháp phải
+  const DEMO = window.LT_DEMO || {};
+  const SRC = window.LT_DATA || {};
+  const pick = (k) => (SRC[k] !== undefined && SRC[k] !== null && !(Array.isArray(SRC[k]) && !SRC[k].length) ? SRC[k] : DEMO[k]);
 
+  const BASE = SRC.base !== undefined ? SRC.base : '';
+  const project = Object.assign({}, DEMO.project, SRC.project || {});
+  const tower = Object.assign({}, DEMO.tower, SRC.tower || {});
+  const units = pick('units') || [];
+  const floorStatus = pick('floorStatus') || {};
+  const floorPrice = SRC.floorPrice || {};
+  const priceStep = +(pick('priceStep') ?? 0.018);
+
+  const url = (p) => (!p ? '' : /^(https?:)?\/\//.test(p) || p.startsWith('/') || p.startsWith('data:') ? p : BASE + p);
+
+  window.LT = { base: BASE, url, project, tower, contact: SRC.contact || null };
+  window.PROJECT = { name: project.name, location: project.location, image: { src: url(tower.image), w: tower.w, h: tower.h } };
+
+  /* ---------- Hình học tầng trên ảnh ---------- */
   const geo = [];
-  for (let n = 1; n <= COUNT; n++) {
-    const y2 = BASE - (n - 1) * H;
-    const y1 = BASE - n * H;
+  for (let n = 1; n <= tower.count; n++) {
+    const y2 = tower.base - (n - 1) * tower.floorH;
+    const y1 = tower.base - n * tower.floorH;
     const rects = [];
-    [L, C, R].forEach((t) => {
+    (tower.towers || []).forEach((t) => {
       const top = Math.max(y1, t.top);
       if (y2 - top > 4) rects.push({ x: t.x1, y: top, w: t.x2 - t.x1, h: y2 - top });
     });
     geo.push({ id: n, label: 'T' + n, y1, y2, rects });
   }
-  // Tầng TOP: mái/vương miện hai tháp
-  geo.push({
-    id: 'TOP', label: 'TOP', y1: 183, y2: 277,
-    polys: [
-      '632,245 633,195 640,186 652,184 802,226 814,236 818,245',
-      '842,277 842,268 850,262 1012,214 1024,218 1030,230 1031,277',
-    ],
-  });
-  window.FLOOR_GEO = geo;
-})();
-
-/* ---------- Loại căn hộ ---------- */
-window.UNIT_TYPES = {
-  '2br': {
-    name: 'Garden Residence', beds: 2, baths: 2, extra: '+1 phòng đa năng', scale: 0.62, ceiling: 3.0,
-    terrace: 'south', basePrice: 6.2,
-    desc: 'Căn hộ 2 phòng ngủ cùng phòng làm việc riêng, phòng khách – bếp – ăn liên thông mở ra ban công kính dài 9m đón gió sông.',
-  },
-  '3br': {
-    name: 'Signature Residence', beds: 3, baths: 2, extra: 'Ban công góc chữ L', scale: 0.7, ceiling: 3.2,
-    terrace: 'L', basePrice: 8.9,
-    desc: 'Căn góc ba phòng ngủ với kính hai mặt, bếp đảo đá marble đen và ban công chữ L bao quanh phòng khách lẫn phòng ngủ master.',
-  },
-  sky: {
-    name: 'Sky Villa', beds: 3, baths: 3, extra: 'Jacuzzi ngoài trời', scale: 0.78, ceiling: 3.4,
-    terrace: 'L', jacuzzi: true, basePrice: 14.5,
-    desc: 'Biệt thự trên không với sân vườn chữ L, bồn jacuzzi riêng, trần cao 3,4m và tầm nhìn toàn cảnh sông Sài Gòn.',
-  },
-  ph: {
-    name: 'Penthouse Crown', beds: 4, baths: 4, extra: 'Hồ bơi vô cực riêng', scale: 0.86, ceiling: 3.8,
-    terrace: 'L', pool: true, jacuzzi: true, basePrice: 38,
-    desc: 'Penthouse trên đỉnh tháp với hồ bơi vô cực riêng, sân thượng 120m², trần 3,8m và thang máy riêng dẫn thẳng vào căn hộ.',
-  },
-};
-
-/* ---------- Danh sách tầng ---------- */
-window.FLOORS = (function () {
-  const list = [];
-  const statuses = ['Còn hàng', 'Còn hàng', 'Đang giữ chỗ', 'Còn hàng', 'Đã bán', 'Còn hàng'];
-  for (let n = 1; n <= 19; n++) {
-    const type = n <= 6 ? '2br' : n <= 13 ? '3br' : 'sky';
-    const t = UNIT_TYPES[type];
-    const price = t.basePrice * (1 + (n - 1) * 0.018);
-    list.push({ id: n, label: 'Tầng ' + n, short: String(n).padStart(2, '0'), type, price, status: statuses[n % statuses.length] });
+  if (tower.top && tower.topPolys && tower.topPolys.length) {
+    const ys = tower.topPolys.join(' ').trim().split(/\s+/).map((p) => +p.split(',')[1]);
+    geo.push({ id: 'TOP', label: 'TOP', y1: Math.min(...ys), y2: Math.max(...ys), polys: tower.topPolys });
   }
-  list.push({ id: 'TOP', label: 'Tầng Top', short: 'TOP', type: 'ph', price: UNIT_TYPES.ph.basePrice, status: 'Còn hàng' });
-  return list;
+  window.FLOOR_GEO = geo;
+
+  /* ---------- Kiểu mô hình dựng sẵn (dùng khi chưa có GLB) ---------- */
+  const PRESETS = {
+    '2br': { scale: 0.62, terrace: 'south' },
+    '3br': { scale: 0.7, terrace: 'L' },
+    sky: { scale: 0.78, terrace: 'L', jacuzzi: true },
+    ph: { scale: 0.86, terrace: 'L', pool: true, jacuzzi: true },
+  };
+  window.PRESETS = PRESETS;
+
+  /* ---------- Loại căn ---------- */
+  window.UNIT_TYPES = {};
+  units.forEach((u, i) => {
+    const slug = u.slug || 'unit-' + i;
+    const preset = PRESETS[u.preset] ? u.preset : '3br';
+    window.UNIT_TYPES[slug] = Object.assign({}, PRESETS[preset], {
+      slug, preset,
+      name: u.name || 'Căn hộ', beds: +u.beds || 0, baths: +u.baths || 0, extra: u.extra || '',
+      ceiling: +u.ceiling || 3, basePrice: +u.price || 0, desc: u.desc || '',
+      area: +u.area || 0, glb: url(u.glb || ''), rotation: +u.rotation || 0,
+      rooms: Array.isArray(u.rooms) ? u.rooms : [],
+    });
+  });
+
+  /* ---------- Danh sách tầng ---------- */
+  const unitFor = (id) => {
+    const u = units.find((x) => (x.floors || []).map(String).includes(String(id)));
+    return u ? u.slug : units.length ? units[id === 'TOP' ? units.length - 1 : 0].slug : null;
+  };
+  const floors = [];
+  const ids = geo.map((g) => g.id);
+  ids.forEach((id) => {
+    const type = unitFor(id); if (!type) return;
+    const t = window.UNIT_TYPES[type];
+    const n = id === 'TOP' ? 0 : id - 1;
+    const price = floorPrice[id] !== undefined ? +floorPrice[id] : t.basePrice * (1 + n * priceStep);
+    floors.push({
+      id, label: id === 'TOP' ? 'Tầng Top' : 'Tầng ' + id, short: id === 'TOP' ? 'TOP' : String(id).padStart(2, '0'),
+      type, price, status: floorStatus[id] || 'Còn hàng',
+    });
+  });
+  window.FLOORS = floors;
 })();
 
-/* ---------- Mặt bằng (ô lưới) ----------
-   Trục x: Tây → Đông, trục z: Bắc → Nam (Nam = phía sông / ban công)  */
+/* ---------- Mặt bằng mô hình dựng sẵn (ô lưới) ----------
+   Trục x: Tây → Đông, trục z: Bắc → Nam (Nam = phía ban công)  */
 window.PLAN = {
   interior: { w: 22, d: 13 },
   rooms: [
@@ -97,10 +101,10 @@ window.PLAN = {
   ],
   // Tường: [x1, z1, x2, z2, 'solid' | 'glass']
   walls: [
-    [0, 0, 9.6, 0, 'solid'], [11, 0, 22, 0, 'solid'],          // Bắc (cửa chính 9.6–11)
-    [0, 0, 0, 13, 'solid'],                                      // Tây
-    [0, 13, 22, 13, 'glass'],                                    // Nam (kính ra ban công)
-    [22, 0, 22, 5, 'solid'], [22, 5, 22, 13, 'glass'],           // Đông
+    [0, 0, 9.6, 0, 'solid'], [11, 0, 22, 0, 'solid'],
+    [0, 0, 0, 13, 'solid'],
+    [0, 13, 22, 13, 'glass'],
+    [22, 0, 22, 5, 'solid'], [22, 5, 22, 13, 'glass'],
     [5.5, 0, 5.5, 5, 'solid'], [8.5, 0, 8.5, 5, 'solid'],
     [0, 5, 3.6, 5, 'solid'], [4.6, 5, 6.2, 5, 'solid'], [7.2, 5, 8.5, 5, 'solid'],
     [0, 6.5, 3.8, 6.5, 'solid'], [4.8, 6.5, 5.5, 6.5, 'solid'],
@@ -112,15 +116,37 @@ window.PLAN = {
   ],
 };
 
-/* ---------- Ảnh & thông số theo loại phòng ---------- */
+/* ---------- Ảnh & thông số mặc định theo loại phòng ---------- */
 window.ROOM_INFO = {
-  living:  { imgs: ['living-1', 'living-2', 'living-3', 'living-4', 'living-5', 'living-6', 'living-7', 'living-8'], floor: 'Gỗ sồi Châu Âu lát xương cá', features: ['Kính Low-E cách nhiệt sàn – trần', 'Điều hoà âm trần Daikin VRV', 'Hệ thống nhà thông minh KNX', 'Rèm tự động điều khiển giọng nói'] },
-  kitchen: { imgs: ['kitchen-1', 'kitchen-2', 'kitchen-3', 'kitchen-4'], floor: 'Đá porcelain vân gỗ', features: ['Bếp đảo mặt đá marble Nero Marquina', 'Thiết bị Bosch Series 8 âm tủ', 'Máy hút mùi âm trần', 'Tủ rượu 2 vùng nhiệt'] },
-  dining:  { imgs: ['dining-1', 'dining-2', 'living-6'], floor: 'Gỗ sồi Châu Âu', features: ['Bàn ăn 8 chỗ', 'Đèn chùm thiết kế riêng', 'Liên thông bếp & phòng khách', 'Cửa kính trượt ra ban công'] },
-  master:  { imgs: ['bed-1', 'bed-2', 'bed-4'], floor: 'Gỗ sồi + thảm len New Zealand', features: ['Phòng thay đồ walk-in', 'Kính góc 2 mặt view sông', 'Cách âm tiêu chuẩn STC 55', 'Đầu giường bọc da tích hợp đèn đọc'] },
-  bedroom: { imgs: ['bed-3', 'bed-5', 'bed-4'], floor: 'Gỗ sồi Châu Âu', features: ['Tủ âm tường kịch trần', 'Cửa sổ kính hộp cách âm', 'Ổ cắm USB-C đầu giường', 'Điều hoà inverter riêng'] },
-  study:   { imgs: ['study-1', 'study-2', 'living-5'], floor: 'Gỗ sồi Châu Âu', features: ['Bàn làm việc gỗ óc chó', 'Kệ sách âm tường', 'Có thể chuyển thành phòng ngủ', 'Đèn chiếu sáng 4000K chống mỏi mắt'] },
-  bath:    { imgs: ['bath-1', 'bath-2', 'bath-3'], floor: 'Đá marble Calacatta Ý', features: ['Bồn tắm đặt sàn Kohler', 'Sen tắm cây âm tường Grohe', 'Gương LED chống mờ', 'Sàn sưởi ấm'] },
-  foyer:   { imgs: ['living-7', 'living-3'], floor: 'Đá marble Calacatta Ý', features: ['Thang máy riêng mở thẳng vào căn hộ', 'Khoá vân tay & nhận diện khuôn mặt', 'Tủ giày âm tường', 'Hệ thống chuông hình 4K'] },
-  terrace: { imgs: ['terrace-1', 'living-4', 'living-8'], floor: 'Gỗ teak ngoài trời', features: ['Lan can kính cường lực 12mm', 'Hệ thống tưới cây tự động', 'Ổ cắm & đèn ngoài trời IP65', 'Ghế nằm thư giãn ngắm hoàng hôn'] },
+  living:  { label: 'Phòng khách', imgs: ['living-1', 'living-2', 'living-3', 'living-4', 'living-5', 'living-6', 'living-7', 'living-8'], floor: 'Gỗ sồi Châu Âu lát xương cá', features: ['Kính Low-E cách nhiệt sàn – trần', 'Điều hoà âm trần Daikin VRV', 'Hệ thống nhà thông minh KNX', 'Rèm tự động điều khiển giọng nói'] },
+  kitchen: { label: 'Bếp', imgs: ['kitchen-1', 'kitchen-2', 'kitchen-3', 'kitchen-4'], floor: 'Đá porcelain vân gỗ', features: ['Bếp đảo mặt đá marble Nero Marquina', 'Thiết bị Bosch Series 8 âm tủ', 'Máy hút mùi âm trần', 'Tủ rượu 2 vùng nhiệt'] },
+  dining:  { label: 'Phòng ăn', imgs: ['dining-1', 'dining-2', 'living-6'], floor: 'Gỗ sồi Châu Âu', features: ['Bàn ăn 8 chỗ', 'Đèn chùm thiết kế riêng', 'Liên thông bếp & phòng khách', 'Cửa kính trượt ra ban công'] },
+  master:  { label: 'Phòng ngủ Master', imgs: ['bed-1', 'bed-2', 'bed-4'], floor: 'Gỗ sồi + thảm len New Zealand', features: ['Phòng thay đồ walk-in', 'Kính góc 2 mặt view sông', 'Cách âm tiêu chuẩn STC 55', 'Đầu giường bọc da tích hợp đèn đọc'] },
+  bedroom: { label: 'Phòng ngủ', imgs: ['bed-3', 'bed-5', 'bed-4'], floor: 'Gỗ sồi Châu Âu', features: ['Tủ âm tường kịch trần', 'Cửa sổ kính hộp cách âm', 'Ổ cắm USB-C đầu giường', 'Điều hoà inverter riêng'] },
+  study:   { label: 'Phòng làm việc', imgs: ['study-1', 'study-2', 'living-5'], floor: 'Gỗ sồi Châu Âu', features: ['Bàn làm việc gỗ óc chó', 'Kệ sách âm tường', 'Có thể chuyển thành phòng ngủ', 'Đèn chiếu sáng 4000K chống mỏi mắt'] },
+  bath:    { label: 'Phòng tắm', imgs: ['bath-1', 'bath-2', 'bath-3'], floor: 'Đá marble Calacatta Ý', features: ['Bồn tắm đặt sàn Kohler', 'Sen tắm cây âm tường Grohe', 'Gương LED chống mờ', 'Sàn sưởi ấm'] },
+  foyer:   { label: 'Sảnh vào', imgs: ['living-7', 'living-3'], floor: 'Đá marble Calacatta Ý', features: ['Thang máy riêng mở thẳng vào căn hộ', 'Khoá vân tay & nhận diện khuôn mặt', 'Tủ giày âm tường', 'Hệ thống chuông hình 4K'] },
+  terrace: { label: 'Ban công', imgs: ['terrace-1', 'living-4', 'living-8'], floor: 'Gỗ teak ngoài trời', features: ['Lan can kính cường lực 12mm', 'Hệ thống tưới cây tự động', 'Ổ cắm & đèn ngoài trời IP65', 'Ghế nằm thư giãn ngắm hoàng hôn'] },
+  other:   { label: 'Không gian', imgs: ['living-2', 'living-5'], floor: 'Gỗ sồi Châu Âu', features: [] },
+};
+
+/* Đoán loại phòng từ tên node trong GLB: room_kitchen, room_bed2, room_wc1 … */
+window.LT.guessType = function (key) {
+  const k = key.toLowerCase();
+  const rules = [
+    ['master', /master|mbr|chinh/], ['bath', /bath|wc|toilet|tam/], ['kitchen', /kitchen|bep/],
+    ['dining', /dining|an\b|eat/], ['living', /living|khach|lounge/], ['study', /study|office|lam.?viec|work/],
+    ['terrace', /terrace|balcon|ban.?cong|deck|garden/], ['foyer', /foyer|entry|sanh|hall/], ['bedroom', /bed|ngu|br\d/],
+  ];
+  const r = rules.find(([, re]) => re.test(k));
+  return r ? r[0] : 'other';
+};
+
+/* Chuẩn hoá danh sách ảnh: tên demo | URL | {src, thumb} → {src, thumb} */
+window.LT.images = function (list) {
+  return (list || []).filter(Boolean).map((x) => {
+    if (typeof x === 'object') return { src: LT.url(x.src), thumb: LT.url(x.thumb || x.src) };
+    if (!/[/.]/.test(x)) return { src: LT.url('assets/interiors/' + x + '.jpg'), thumb: LT.url('assets/interiors/thumbs/' + x + '.jpg') };
+    return { src: LT.url(x), thumb: LT.url(x) };
+  });
 };
