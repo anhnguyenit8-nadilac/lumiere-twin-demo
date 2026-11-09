@@ -27,3 +27,48 @@ Cài: Plugins › Cài mới › Tải plugin lên → kích hoạt → menu **T
 - **Cài đặt**: tên dự án, ảnh tòa nhà, toạ độ tầng (JSON), bước giá, tình trạng/giá riêng từng tầng, email nhận khách.
 - **Khách đăng ký**: form trên web lưu vào admin + gửi email.
 - File mẫu: `samples/sample-apartment.glb` (đặt tên `room_living`, `room_kitchen`, … và `hotspot_living`).
+
+## Skill cho Claude Code (`.claude/skills/`)
+
+Bộ lệnh để Claude Code làm các việc lặp lại của dự án. Gõ lệnh trong Claude Code, không cần mở file `.md`.
+
+| Lệnh | Dùng khi | Claude làm gì |
+|---|---|---|
+| `/lt-calibrate <ảnh> [số tầng, TOP, tầng → loại căn]` | Job mới, khách đưa ảnh phối cảnh tòa nhà | Đo toạ độ tầng, vẽ các tầng chồng lên ảnh để kiểm tra, giao JSON để dán vào *Tòa nhà 3D › Cài đặt › Hình học các tầng* + các bước trong WP Admin |
+| `/lt-test-live <url> [tầng]` | Plugin không chạy / lỗi trên một site WordPress | Mở trang bằng Chrome chạy ngầm, bắt lỗi JS, rê chuột + bấm vào tầng, chụp màn hình; có thể thử bản sửa trong repo ngay trên site mà không cần cài |
+| `/lt-release [patch\|minor\|major] [push]` | Sau khi sửa code | Tăng phiên bản, kiểm tra, build `dist/lumiere-tower.zip`, commit (push nếu có chữ `push`) |
+
+Ví dụ:
+```
+/lt-calibrate ~/Downloads/phoi-canh.jpg 25 tầng + TOP; 1-10 Garden, 11-24 Signature, TOP Penthouse
+/lt-test-live https://ten-site.com/trang-toa-nha/
+/lt-release push
+```
+
+### Cài đặt
+
+Skill nằm sẵn trong repo, **clone về là dùng được**:
+
+1. Cài [Claude Code](https://claude.com/claude-code), **Node.js ≥ 18** (`node -v`) và **Google Chrome**.
+2. Clone repo và mở Claude Code **tại thư mục gốc dự án**:
+   ```
+   git clone https://github.com/anhnguyenit8-nadilac/lumiere-twin-demo.git
+   cd lumiere-twin-demo
+   claude
+   ```
+3. Gõ `/lt-` — danh sách lệnh hiện ra. Nếu chưa thấy (đang mở Claude Code từ trước khi pull về), thoát và mở lại Claude Code.
+
+Đã có repo thì chỉ cần `git pull` rồi mở lại Claude Code.
+
+**Dùng ở dự án khác / mọi thư mục:** chép skill vào thư mục skill cá nhân:
+```
+mkdir -p ~/.claude/skills
+cp -R .claude/skills/lt-* ~/.claude/skills/
+```
+(Các skill vẫn trỏ tới file của dự án này — `js/data.js`, `wp-plugin/` — nên chủ yếu dùng khi làm việc trong repo này.)
+
+**Lưu ý**
+- Script chạy Chrome theo đường dẫn macOS: `/Applications/Google Chrome.app/…`. Dùng Windows/Linux thì sửa hằng `CHROME` trong `.claude/skills/lt-calibrate/overlay.mjs` và `.claude/skills/lt-test-live/live-test.mjs`.
+- `lt-calibrate` đọc kích thước ảnh bằng `sips` (có sẵn trên macOS).
+- Kiểm tra cú pháp PHP trong `lt-release` cần `php` (`brew install php`); không có thì bước này được bỏ qua và báo lại.
+- Khi Claude hỏi quyền chạy `node …` hay Chrome, chọn cho phép (có thể chọn "luôn cho phép" cho dự án này).
