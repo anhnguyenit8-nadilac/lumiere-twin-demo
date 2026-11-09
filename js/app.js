@@ -387,7 +387,9 @@
     const ok = $('#cOk'), btn = form.querySelector('[type="submit"]');
     const done = (success, msg) => {
       btn.disabled = false; ok.hidden = false;
+      if (!ok.dataset.text) ok.dataset.text = ok.textContent;
       if (!success) { ok.textContent = msg || 'Gửi chưa được, vui lòng thử lại.'; ok.style.color = '#ff9d9d'; return; }
+      ok.textContent = ok.dataset.text; ok.style.color = '';
       form.reset(); setTimeout(closeContact, 1800);
     };
     if (!LT.contact || !LT.contact.ajax) { done(true); return; }   // bản demo tĩnh

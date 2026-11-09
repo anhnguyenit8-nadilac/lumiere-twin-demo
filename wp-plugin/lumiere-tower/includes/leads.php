@@ -9,7 +9,9 @@ add_action( 'wp_ajax_lt_lead', 'lt_handle_lead' );
 add_action( 'wp_ajax_nopriv_lt_lead', 'lt_handle_lead' );
 
 function lt_handle_lead() {
-	if ( ! check_ajax_referer( 'lt_lead', 'nonce', false ) ) {
+	// Chỉ bắt nonce với người đã đăng nhập (chống CSRF). Khách vãng lai: trang hay bị cache
+	// (WP Rocket, LiteSpeed…) làm nonce hết hạn sau ~24h → mất khách. Đã có bẫy bot + giới hạn theo IP.
+	if ( is_user_logged_in() && ! check_ajax_referer( 'lt_lead', 'nonce', false ) ) {
 		wp_send_json_error( array( 'message' => 'Phiên đã hết hạn, vui lòng tải lại trang.' ), 403 );
 	}
 	// bẫy bot: ô ẩn "website" phải để trống
