@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lumière Twin · Căn hộ hạng sang</title>
+  <meta name="description" content="Khám phá từng tầng, mô hình 3D căn hộ và nội thất chi tiết của Lumière Twin.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Display:wght@400;500;600&family=Be+Vietnam+Pro:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ========== HEADER ========== -->
+  <header class="topbar">
+    <a class="brand" href="#" data-action="home">
+      <span class="brand-name">LUMIÈRE&nbsp;TWIN</span>
+      <span class="brand-sep"></span>
+      <span class="brand-loc">THỦ THIÊM · TP. HỒ CHÍ MINH</span>
+    </a>
+    <nav class="nav">
+      <a href="#" data-goto="7">Căn hộ</a>
+      <a href="#" data-goto="16">Sky Villa</a>
+      <a href="#" data-goto="TOP">Penthouse</a>
+      <button class="btn-outline" data-action="contact">Đặt lịch tham quan</button>
+    </nav>
+  </header>
+
+  <!-- ========== VIEW 1: TÒA NHÀ ========== -->
+  <section id="towerView" class="view is-active" aria-label="Chọn tầng">
+    <div class="stage" id="stage">
+      <img class="tower-bg" src="assets/tower.jpg" alt="" decoding="async" fetchpriority="high">
+      <svg id="towerSvg" viewBox="0 0 1672 941" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Phối cảnh tháp đôi Lumière Twin">
+        <defs>
+          <linearGradient id="lit" x1="0" x2="1">
+            <stop offset="0" stop-color="#ffd58a" stop-opacity=".55"/>
+            <stop offset=".5" stop-color="#fff1cf" stop-opacity=".8"/>
+            <stop offset="1" stop-color="#ffd58a" stop-opacity=".55"/>
+          </linearGradient>
+          <mask id="dimMask"><rect width="1672" height="941" fill="#fff"/><g id="dimHole" fill="#000"></g></mask>
+        </defs>
+        <rect class="dim" width="1672" height="941" mask="url(#dimMask)"/>
+        <g id="floors"></g>
+      </svg>
+    </div>
+
+    <div class="tower-hero">
+      <p class="eyebrow">Tháp đôi ven sông · 19 tầng + Penthouse</p>
+      <h1>Sống giữa<br>những tầng mây</h1>
+    </div>
+
+    <ol class="floor-rail" id="floorRail" aria-label="Danh sách tầng"></ol>
+
+    <div class="callout" id="callout" aria-live="polite">
+      <div class="callout-num"><small>TẦNG</small><b id="coNum">7</b></div>
+      <div class="callout-body">
+        <h3 id="coName">Signature Residence</h3>
+        <p id="coMeta">3 PN · 2 WC · 140 m²</p>
+        <span class="pill" id="coStatus">CÒN HÀNG · TỪ 8,9 TỶ</span>
+      </div>
+    </div>
+    <svg class="callout-line" id="calloutLine"><line x1="0" y1="0" x2="0" y2="0"/><circle r="3"/></svg>
+
+    <p class="hint hint-tower"><span class="dot"></span>Di chuột vào một tầng để khám phá · nhấn để vào căn hộ</p>
+    <p class="credit">Phối cảnh minh hoạ · Dự án mang tính trình diễn</p>
+  </section>
+
+  <!-- ========== VIEW 2: CĂN HỘ 3D ========== -->
+  <section id="aptView" class="view" aria-label="Mô hình 3D căn hộ">
+    <div id="three" class="three"></div>
+    <div id="hotspots" class="hotspots"></div>
+    <div class="room-tip" id="roomTip"></div>
+
+    <aside class="panel" id="panel">
+      <div class="panel-grip" data-action="toggle-panel"></div>
+      <div class="panel-head">
+        <p class="eyebrow" id="pFloor">TẦNG 7 · CÒN HÀNG</p>
+        <div class="floor-step">
+          <button data-action="floor-up" aria-label="Tầng trên">▲</button>
+          <button data-action="floor-down" aria-label="Tầng dưới">▼</button>
+        </div>
+      </div>
+      <h2 id="pName">Signature Residence</h2>
+      <div class="stats">
+        <div><b id="pBeds">3</b><span>Phòng ngủ</span></div>
+        <div><b id="pBaths">2</b><span>Phòng tắm</span></div>
+        <div><b id="pArea">140</b><span>m² sử dụng</span></div>
+      </div>
+      <p class="price"><small>TỪ</small> <b id="pPrice">8,9 tỷ</b></p>
+      <p class="desc" id="pDesc"></p>
+      <p class="extra" id="pExtra"></p>
+      <ul class="room-list" id="roomList"></ul>
+      <div class="panel-actions">
+        <button class="btn-dark" data-action="back">← Về tòa nhà</button>
+        <button class="btn-light" data-action="contact">Nhận bảng giá</button>
+      </div>
+    </aside>
+
+    <div class="view-tools">
+      <button data-action="reset-view" title="Góc nhìn mặc định">⟲ Góc nhìn</button>
+    </div>
+    <p class="hint hint-apt"><span class="dot"></span>Kéo để xoay · cuộn để phóng to · nhấn vào phòng để xem nội thất</p>
+  </section>
+
+  <!-- ========== GALLERY ========== -->
+  <section id="gallery" class="gallery" aria-hidden="true" aria-label="Hình ảnh nội thất">
+    <div class="g-slides" id="gSlides"></div>
+    <div class="g-shade"></div>
+    <div class="g-top">
+      <div class="g-rooms" id="gRooms"></div>
+      <button class="g-close" data-action="close-gallery" aria-label="Đóng">✕</button>
+    </div>
+    <div class="g-info">
+      <p class="eyebrow" id="gEyebrow">TẦNG 7 · SIGNATURE RESIDENCE</p>
+      <h2 id="gTitle">Phòng khách</h2>
+      <dl class="g-specs" id="gSpecs"></dl>
+      <ul class="g-features" id="gFeatures"></ul>
+    </div>
+    <div class="g-nav">
+      <button data-action="prev" aria-label="Ảnh trước">←</button>
+      <span class="g-count"><b id="gIdx">01</b> / <span id="gTotal">03</span></span>
+      <button data-action="next" aria-label="Ảnh sau">→</button>
+    </div>
+    <div class="g-thumbs" id="gThumbs"></div>
+    <div class="g-progress"><i id="gProg"></i></div>
+  </section>
+
+  <!-- ========== LIÊN HỆ ========== -->
+  <div class="modal" id="contact" aria-hidden="true">
+    <form class="modal-card" id="contactForm">
+      <button type="button" class="g-close" data-action="close-contact" aria-label="Đóng">✕</button>
+      <p class="eyebrow" id="cEyebrow">LUMIÈRE TWIN</p>
+      <h2>Đặt lịch tham quan</h2>
+      <p class="muted">Chuyên viên tư vấn sẽ liên hệ trong vòng 30 phút.</p>
+      <label>Họ và tên<input required name="name" autocomplete="name"></label>
+      <label>Số điện thoại<input required name="phone" type="tel" autocomplete="tel" pattern="[0-9 +]{9,14}"></label>
+      <label>Quan tâm<select name="interest" id="cInterest"></select></label>
+      <button class="btn-light wide" type="submit">Gửi yêu cầu</button>
+      <p class="ok" id="cOk" hidden>Cảm ơn bạn! Chúng tôi sẽ liên hệ sớm.</p>
+    </form>
+  </div>
+
+  <div class="flash" id="flash"></div>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="vendor/OrbitControls.js"></script>
+  <script src="vendor/BufferGeometryUtils.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/scene3d.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
