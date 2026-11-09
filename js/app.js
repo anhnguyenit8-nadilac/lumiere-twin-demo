@@ -3,8 +3,7 @@
    Chạy được cả dạng trang độc lập lẫn nhúng trong WordPress (khung #lt-app)
    ========================================================= */
 (function () {
-  const app = document.getElementById('lt-app');
-  if (!app) return;
+function ltInit(app) {
   const $ = (s, el = app) => el.querySelector(s);
   const $$ = (s, el = app) => [...el.querySelectorAll(s)];
   const NS = 'http://www.w3.org/2000/svg';
@@ -435,10 +434,11 @@
   window.addEventListener('resize', () => { if (state.view === 'apt') Scene3D.setViewOffset(isMobile() ? 0 : 190); });
 
   // Khi trang đã tải: dựng sẵn các loại căn KHÔNG dùng GLB (GLB chỉ tải khi rê chuột vào tầng)
-  window.addEventListener('load', () => {
+  const prewarmAll = () => {
     const seen = new Set();
     FLOORS.forEach((f) => { if (!seen.has(f.type) && !UNIT_TYPES[f.type].glb) { seen.add(f.type); setTimeout(() => prewarmType(f.id), 600 + seen.size * 500); } });
-  });
+  };
+  if (document.readyState === 'complete') prewarmAll(); else window.addEventListener('load', prewarmAll);
 
   if (window.matchMedia('(hover: none)').matches) {
     const h = $('.hint-tower'); if (h) h.lastChild.textContent = 'Chạm vào một tầng để vào căn hộ';
@@ -448,4 +448,19 @@
   const m = location.hash.match(/floor=(\w+)/);
   const start = (m && m[1]) || app.dataset.floor;
   if (start && floorById(start)) setTimeout(() => enterFloor(start), 400);
+}
+
+  // Khởi động khi có khung #lt-app. Một số theme (React/Vue, page builder) vẽ nội dung trang
+  // SAU khi script đã chạy, nên nếu chưa thấy khung thì theo dõi DOM và khởi động khi nó xuất hiện.
+  const boot = () => {
+    const app = document.getElementById('lt-app');
+    if (!app || app.dataset.ltReady) return !!app;
+    app.dataset.ltReady = '1';
+    ltInit(app);
+    return true;
+  };
+  if (!boot()) {
+    const mo = new MutationObserver(() => { if (boot()) mo.disconnect(); });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+  }
 })();

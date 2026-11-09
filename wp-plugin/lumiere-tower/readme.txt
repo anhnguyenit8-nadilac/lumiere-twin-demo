@@ -1,7 +1,7 @@
 === Lumière Tower 3D ===
 Requires at least: 6.0
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPL-2.0-or-later
 
 Tòa nhà tương tác cho website bất động sản: hover tầng, zoom vào mô hình 3D căn hộ, slide ảnh nội thất.
