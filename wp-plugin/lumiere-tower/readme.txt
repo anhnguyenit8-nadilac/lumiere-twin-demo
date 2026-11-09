@@ -1,7 +1,7 @@
 === Lumière Tower 3D ===
 Requires at least: 6.0
 Requires PHP: 7.4
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPL-2.0-or-later
 
 Tòa nhà tương tác cho website bất động sản: hover tầng, zoom vào mô hình 3D căn hộ, slide ảnh nội thất.
@@ -13,10 +13,14 @@ Tòa nhà tương tác cho website bất động sản: hover tầng, zoom vào 
 4. Chèn shortcode [lumiere_tower] vào trang (Gutenberg: khối Shortcode; Elementor: widget Shortcode).
 
 == Shortcode ==
-[lumiere_tower height="100vh" header="1" floor=""]
+[lumiere_tower height="100vh" header="1" floor="" full="0"]
 - height: chiều cao khung (px, vh, %…)
 - header: 0 để ẩn thanh tiêu đề riêng (khi theme đã có header)
 - floor: mở sẵn 1 tầng, VD floor="7" hoặc floor="TOP"
+- full: 1 để tràn hết chiều ngang màn hình khi theme đặt nội dung trong khung hẹp
+
+== Toàn màn hình ==
+Sửa trang › ô Mẫu (Template) › chọn "Tòa nhà 3D – Toàn màn hình": bỏ header/footer/banner của theme, tòa nhà chiếm trọn màn hình.
 
 == File GLB ==
 - Xuất .glb, đơn vị mét, nén Draco, nên < 10 MB.

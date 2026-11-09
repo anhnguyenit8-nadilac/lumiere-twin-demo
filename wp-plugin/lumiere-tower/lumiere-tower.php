@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Lumière Tower 3D
  * Description:       Tòa nhà tương tác cho dự án BĐS: hover từng tầng, zoom vào mô hình 3D căn hộ (upload file GLB cho từng loại căn), slide ảnh nội thất toàn màn hình. Chèn bằng shortcode [lumiere_tower].
- * Version:           1.0.1
+ * Version:           1.0.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Lumière
@@ -12,7 +12,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LT_VERSION', '1.0.1' );
+define( 'LT_VERSION', '1.0.2' );
 define( 'LT_FILE', __FILE__ );
 define( 'LT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LT_URL', plugin_dir_url( __FILE__ ) );

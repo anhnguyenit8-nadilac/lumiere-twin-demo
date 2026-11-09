@@ -1,6 +1,6 @@
 <?php
 /**
- * Shortcode [lumiere_tower height="100vh" header="1" floor=""]
+ * Shortcode [lumiere_tower height="100vh" header="1" floor="" full="0"]
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -33,6 +33,7 @@ function lt_render_shortcode( $atts ) {
 		'height' => '100vh',
 		'header' => '1',
 		'floor'  => '',
+		'full'   => '0',
 	), $atts, 'lumiere_tower' );
 
 	$height = preg_match( '/^\d+(\.\d+)?(px|vh|svh|dvh|rem|em|%)$/', trim( $atts['height'] ) ) ? trim( $atts['height'] ) : '100vh';
@@ -51,6 +52,7 @@ function lt_render_shortcode( $atts ) {
 	$img    = preg_match( '#^(https?:)?//#', $tower['image'] ) ? $tower['image'] : $data['base'] . $tower['image'];
 	$header = '0' !== (string) $atts['header'];
 	$floor  = sanitize_text_field( $atts['floor'] );
+	$full   = in_array( strtolower( (string) $atts['full'] ), array( '1', 'yes', 'true' ), true );
 
 	// Menu: mỗi loại căn → tầng đầu tiên của loại đó
 	$nav = array();
@@ -64,3 +66,20 @@ function lt_render_shortcode( $atts ) {
 	include LT_DIR . 'templates/app.php';
 	return ob_get_clean();
 }
+
+/**
+ * Mẫu trang "Tòa nhà 3D – Toàn màn hình" (chọn ở ô Mẫu / Template khi sửa trang).
+ */
+define( 'LT_CANVAS_TEMPLATE', 'lumiere-tower-canvas' );
+
+add_filter( 'theme_page_templates', function ( $templates ) {
+	$templates[ LT_CANVAS_TEMPLATE ] = 'Tòa nhà 3D – Toàn màn hình';
+	return $templates;
+} );
+
+add_filter( 'template_include', function ( $template ) {
+	if ( is_singular( 'page' ) && LT_CANVAS_TEMPLATE === get_page_template_slug() ) {
+		return LT_DIR . 'templates/canvas.php';
+	}
+	return $template;
+}, 99 );

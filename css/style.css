@@ -15,6 +15,9 @@
 #lt-app, #lt-app *, #lt-app *::before, #lt-app *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 #lt-app { position: relative; width: 100%; height: var(--lt-height, 100vh); overflow: hidden; background: var(--navy); color: #fff; font-family: var(--sans); font-weight: 300; font-size: 16px; line-height: 1.4; text-align: left; letter-spacing: normal; -webkit-font-smoothing: antialiased; isolation: isolate; }
+/* Tràn hết chiều ngang màn hình dù theme đặt shortcode trong khung hẹp: [lumiere_tower full="1"] */
+#lt-app.lt-full { --lt-vw: calc(100vw - var(--lt-sbw, 0px)); width: var(--lt-vw); max-width: var(--lt-vw); margin-left: calc(50% - var(--lt-vw) / 2); margin-right: calc(50% - var(--lt-vw) / 2); }
+html:has(#lt-app.lt-full), html:has(#lt-app.lt-full) body { overflow-x: clip; }
 #lt-app button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 #lt-app a { color: inherit; text-decoration: none; }
 #lt-app .eyebrow { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--gold); font-weight: 500; }

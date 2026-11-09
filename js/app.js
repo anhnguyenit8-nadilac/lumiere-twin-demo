@@ -456,6 +456,11 @@ function ltInit(app) {
     const app = document.getElementById('lt-app');
     if (!app || app.dataset.ltReady) return !!app;
     app.dataset.ltReady = '1';
+    if (app.classList.contains('lt-full')) {
+      // Trừ bề rộng thanh cuộn dọc để khung tràn màn hình không bị cắt mép
+      const sbw = () => app.style.setProperty('--lt-sbw', Math.max(0, window.innerWidth - document.documentElement.clientWidth) + 'px');
+      sbw(); window.addEventListener('resize', sbw);
+    }
     ltInit(app);
     return true;
   };

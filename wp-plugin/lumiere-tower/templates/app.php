@@ -1,12 +1,12 @@
 <?php
 /**
- * Giao diện tòa nhà 3D. Biến có sẵn: $s (cài đặt), $data, $tower, $img, $header, $floor, $nav, $height.
+ * Giao diện tòa nhà 3D. Biến có sẵn: $s (cài đặt), $data, $tower, $img, $header, $floor, $full, $nav, $height.
  */
 defined( 'ABSPATH' ) || exit;
 $tw = (int) $tower['w'];
 $th = (int) $tower['h'];
 ?>
-<div id="lt-app" style="--lt-height: <?php echo esc_attr( $height ); ?>" data-floor="<?php echo esc_attr( $floor ); ?>">
+<div id="lt-app"<?php echo $full ? ' class="lt-full"' : ''; ?> style="--lt-height: <?php echo esc_attr( $height ); ?>" data-floor="<?php echo esc_attr( $floor ); ?>">
 
 	<?php if ( $header ) : ?>
 	<header class="topbar">
